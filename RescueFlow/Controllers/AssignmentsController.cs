@@ -74,8 +74,7 @@ namespace RescueFlow.Controllers
                 }
 
 
-                var assignmentsFromDb = _context.Assignments.ToList();
-                return Ok(assignmentsFromDb);
+                return NotFound(new { message = "ไม่พบผลลัพธ์การมอบหมายทรัพยากรใน Redis หรืออาจหมดเวลาแล้ว" });
             }
             catch (Exception ex)
             {
@@ -89,10 +88,6 @@ namespace RescueFlow.Controllers
             try
             {
                 await _redis.DeleteCacheAsync(CACHE_KEY);
-
-                //_context.Assignments.RemoveRange(_context.Assignments);
-                //await _context.SaveChangesAsync();
-
                 return NoContent();
             }
             catch (Exception ex)
