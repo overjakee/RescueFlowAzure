@@ -73,6 +73,7 @@ namespace RescueFlow.Controllers
                     return Ok(result);
                 }
 
+
                 var assignmentsFromDb = _context.Assignments.ToList();
                 return Ok(assignmentsFromDb);
             }
