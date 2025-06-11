@@ -8,6 +8,7 @@ namespace RescueFlow.Models
     public class Assignment
     {
         [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         [JsonIgnore]
         public int Id { get; set; } 
 

@@ -18,6 +18,8 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 );
 
 // Register Services กับ Interface
+builder.Services.AddScoped<IAreaService, AreaService>();
+builder.Services.AddScoped<ITruckService, TruckService>();
 builder.Services.AddScoped<IAssignmentService, AssignmentService>();
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
 

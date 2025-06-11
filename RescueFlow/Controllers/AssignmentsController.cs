@@ -14,19 +14,9 @@ namespace RescueFlow.Controllers
     [ApiController]
     public class AssignmentsController : ControllerBase
     {
-        private readonly RescueFlowDbContext _context;
-        private readonly IRedisCacheService _redis;
         private readonly IAssignmentService _assignmentService;
-
-        private const string CACHE_KEY = "latest_assignments";
-
-        public AssignmentsController(
-            RescueFlowDbContext context,
-            IRedisCacheService redis,
-            IAssignmentService assignmentService)
+        public AssignmentsController(IAssignmentService assignmentService)
         {
-            _context = context;
-            _redis = redis;
             _assignmentService = assignmentService;
         }
 
@@ -35,25 +25,12 @@ namespace RescueFlow.Controllers
         {
             try
             {
-                // แสดงผลการคำนวณว่าที่ Area ไหนสามารถจัดการได้, จัดการไม่ได้ เพราะอะไร
-                var assignments = _assignmentService.ProcessAssignments();
-
-                // ตรวจสอบกรณีไม่มีการมอบหมาย
-                if (assignments == null || !assignments.Any())
-                {
-                    return NotFound(new { message = "ไม่สามารถมอบหมายทรัพยากรได้" });
-                }
-
-                // ลบข้อมูลการมอบหมายเก่าและเพิ่มใหม่
-                _context.Assignments.RemoveRange(_context.Assignments);
-                _context.Assignments.AddRange(assignments);
-                await _context.SaveChangesAsync();
-
-                // แคชผลลัพธ์ใน Redis
-                var json = JsonSerializer.Serialize(assignments);
-                await _redis.SetCacheAsync(CACHE_KEY, json, TimeSpan.FromMinutes(30));
-
-                return Ok(assignments);
+                var result = await _assignmentService.ProcessAssignments();
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(ex.Message);
             }
             catch (Exception ex)
             {
@@ -66,15 +43,12 @@ namespace RescueFlow.Controllers
         {
             try
             {
-                var cached = await _redis.GetCacheAsync(CACHE_KEY);
-                if (!string.IsNullOrEmpty(cached))
-                {
-                    var result = JsonSerializer.Deserialize<List<Assignment>>(cached);
-                    return Ok(result);
-                }
-
-
-                return NotFound(new { message = "ไม่พบผลลัพธ์การมอบหมายทรัพยากรใน Redis หรืออาจหมดเวลาแล้ว" });
+                var result = await _assignmentService.GetAssignmentsFromRedis();
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(ex.Message);
             }
             catch (Exception ex)
             {
@@ -87,8 +61,12 @@ namespace RescueFlow.Controllers
         {
             try
             {
-                await _redis.DeleteCacheAsync(CACHE_KEY);
+                await _assignmentService.DeleteAssignmentsFromRedis();
                 return NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(ex.Message);
             }
             catch (Exception ex)
             {

@@ -1,10 +1,12 @@
-﻿using RescueFlow.Models;
+﻿using RescueFlow.DTO.Assignment.Response;
+using RescueFlow.Models;
 
 namespace RescueFlow.Interfaces
 {
     public interface IAssignmentService
     {
-        // คำนวณข้อมูลสำหรับจัดสรรทรัพยากร
-        List<Assignment> ProcessAssignments();
+        Task<List<ProcessAssignmentResponse>> ProcessAssignments();
+        Task<List<GetAssignmentResponse>> GetAssignmentsFromRedis();
+        Task DeleteAssignmentsFromRedis();
     }
 }

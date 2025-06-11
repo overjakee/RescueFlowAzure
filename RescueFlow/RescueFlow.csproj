@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="DTO\Assignment\Request\" />
     <Folder Include="Migrations\" />
   </ItemGroup>
 
