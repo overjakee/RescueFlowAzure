@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RescueFlow.Data;
 using RescueFlow.Interfaces;
+using RescueFlow.Interfaces.Repositories;
+using RescueFlow.Repositories;
 using RescueFlow.Services;
 using StackExchange.Redis;
 
@@ -22,6 +24,10 @@ builder.Services.AddScoped<IAreaService, AreaService>();
 builder.Services.AddScoped<ITruckService, TruckService>();
 builder.Services.AddScoped<IAssignmentService, AssignmentService>();
 builder.Services.AddScoped<IRedisCacheService, RedisCacheService>();
+
+builder.Services.AddScoped<IAreaRepository, AreaRepository>();
+builder.Services.AddScoped<ITruckRepository, TruckRepository>();
+builder.Services.AddScoped<IAssignmentRepository, AssignmentRepository>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

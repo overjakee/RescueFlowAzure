@@ -1,116 +1,105 @@
-﻿using RescueFlow.Data;
-using RescueFlow.DTO.Truck.Request;
+﻿using RescueFlow.DTO.Truck.Request;
 using RescueFlow.DTO.Truck.Response;
 using RescueFlow.Interfaces;
-using Microsoft.EntityFrameworkCore;
+using RescueFlow.Interfaces.Repositories;
 using RescueFlow.Models;
 
 namespace RescueFlow.Services
 {
     public class TruckService : ITruckService
     {
-        private readonly RescueFlowDbContext _context;
-        public TruckService(RescueFlowDbContext context)
+        private readonly ITruckRepository _truckRepository;
+
+        public TruckService(ITruckRepository truckRepository)
         {
-            _context = context;
+            _truckRepository = truckRepository;
         }
 
         public async Task<AddTruckResponse> AddTruck(AddTruckRequest request)
         {
             ValidateAddTruckRequest(request);
 
-            var exists = await _context.Trucks.FirstOrDefaultAsync(a => a.TruckId == request.TruckId);
-            if (exists != null)
+            if (await _truckRepository.ExistsAsync(request.TruckId))
                 throw new InvalidOperationException($"ข้อมูลของ TruckId '{request.TruckId}' มีอยู่แล้ว");
 
-            var Truck = new Truck
+            var truck = new Truck
             {
                 TruckId = request.TruckId,
                 AvailableResources = request.AvailableResources,
                 TravelTimeToArea = request.TravelTimeToArea
             };
 
-            _context.Trucks.Add(Truck);
-            await _context.SaveChangesAsync();
+            await _truckRepository.AddAsync(truck);
 
-            var response = new AddTruckResponse
+            return new AddTruckResponse
             {
-                TruckId = Truck.TruckId,
-                AvailableResources = Truck.AvailableResources,
-                TravelTimeToArea = Truck.TravelTimeToArea
+                TruckId = truck.TruckId,
+                AvailableResources = truck.AvailableResources,
+                TravelTimeToArea = truck.TravelTimeToArea
             };
-            return response;
         }
 
         public async Task<List<GetTruckResponse>> GetTrucks()
         {
-            var Trucks = await _context.Trucks.ToListAsync();
+            var trucks = await _truckRepository.GetAllAsync();
 
-            var response = Trucks.Select(a => new GetTruckResponse
+            return trucks.Select(t => new GetTruckResponse
             {
-                TruckId = a.TruckId,
-                AvailableResources = a.AvailableResources,
-                TravelTimeToArea = a.TravelTimeToArea
+                TruckId = t.TruckId,
+                AvailableResources = t.AvailableResources,
+                TravelTimeToArea = t.TravelTimeToArea
             }).ToList();
-
-            return response;
         }
 
-        public async Task<GetTruckResponse> GetTruckById(string TruckId)
+        public async Task<GetTruckResponse> GetTruckById(string truckId)
         {
-            if (string.IsNullOrEmpty(TruckId))
+            if (string.IsNullOrEmpty(truckId))
                 throw new ArgumentException("TruckId ต้องมีข้อมูล");
 
-            var Truck = await _context.Trucks.FirstOrDefaultAsync(a => a.TruckId == TruckId);
-            if (Truck == null)
-                throw new KeyNotFoundException($"ไม่พบข้อมูล TruckId '{TruckId}'");
+            var truck = await _truckRepository.GetByIdAsync(truckId);
+            if (truck == null)
+                throw new KeyNotFoundException($"ไม่พบข้อมูล TruckId '{truckId}'");
 
-            var response = new GetTruckResponse
+            return new GetTruckResponse
             {
-                TruckId = Truck.TruckId,
-                AvailableResources = Truck.AvailableResources,
-                TravelTimeToArea = Truck.TravelTimeToArea
+                TruckId = truck.TruckId,
+                AvailableResources = truck.AvailableResources,
+                TravelTimeToArea = truck.TravelTimeToArea
             };
-
-            return response;
         }
 
-        public async Task<UpdateTruckResponse> UpdateTruck(UpdateTruckRequest request, string TruckId)
+        public async Task<UpdateTruckResponse> UpdateTruck(UpdateTruckRequest request, string truckId)
         {
-            ValidateUpdateTruckRequest(request, TruckId);
+            ValidateUpdateTruckRequest(request, truckId);
 
-            var existingTruck = await _context.Trucks.FirstOrDefaultAsync(a => a.TruckId == request.TruckId);
+            var existingTruck = await _truckRepository.GetByIdAsync(truckId);
             if (existingTruck == null)
                 throw new InvalidOperationException($"ไม่พบข้อมูล TruckId '{request.TruckId}' ในระบบ");
 
             existingTruck.AvailableResources = request.AvailableResources;
             existingTruck.TravelTimeToArea = request.TravelTimeToArea;
 
-            await _context.SaveChangesAsync();
+            await _truckRepository.UpdateAsync(existingTruck);
 
-            var response = new UpdateTruckResponse
+            return new UpdateTruckResponse
             {
                 TruckId = existingTruck.TruckId,
                 AvailableResources = existingTruck.AvailableResources,
                 TravelTimeToArea = existingTruck.TravelTimeToArea
             };
-
-            return response;
         }
 
-        public async Task DeleteTruckById(string TruckId)
+        public async Task DeleteTruckById(string truckId)
         {
-            if (string.IsNullOrEmpty(TruckId))
+            if (string.IsNullOrEmpty(truckId))
                 throw new ArgumentException("TruckId ต้องมีข้อมูล");
 
-            var Truck = await _context.Trucks.FindAsync(TruckId);
-            if (Truck == null)
-                throw new KeyNotFoundException($"ไม่พบ Truck ที่มี ID '{TruckId}'");
+            var truck = await _truckRepository.GetByIdAsync(truckId);
+            if (truck == null)
+                throw new KeyNotFoundException($"ไม่พบ Truck ที่มี ID '{truckId}'");
 
-            _context.Trucks.Remove(Truck);
-            await _context.SaveChangesAsync();
+            await _truckRepository.DeleteAsync(truck);
         }
-
 
         private void ValidateAddTruckRequest(AddTruckRequest request)
         {
@@ -124,9 +113,9 @@ namespace RescueFlow.Services
                 throw new ArgumentException("TravelTimeToArea ต้องมีข้อมูล");
         }
 
-        private void ValidateUpdateTruckRequest(UpdateTruckRequest request, string TruckId)
+        private void ValidateUpdateTruckRequest(UpdateTruckRequest request, string truckId)
         {
-            if (string.IsNullOrEmpty(request.TruckId) || string.IsNullOrEmpty(TruckId) || request.TruckId != TruckId)
+            if (string.IsNullOrEmpty(request.TruckId) || string.IsNullOrEmpty(truckId) || request.TruckId != truckId)
                 throw new ArgumentException("TruckId ต้องมีข้อมูล และต้องตรงกัน");
 
             if (request.AvailableResources == null || !request.AvailableResources.Any())
