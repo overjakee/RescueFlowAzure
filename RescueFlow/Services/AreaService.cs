@@ -1,18 +1,25 @@
-﻿using RescueFlow.DTO.Area.Request;
+﻿using Newtonsoft.Json;
+using RescueFlow.DTO.Area.Request;
 using RescueFlow.DTO.Area.Response;
 using RescueFlow.Interfaces;
 using RescueFlow.Interfaces.Repositories;
 using RescueFlow.Models;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace RescueFlow.Services
 {
     public class AreaService : IAreaService
     {
         private readonly IAreaRepository _areaRepository;
+        private readonly IRedisCacheService _redisCacheService;
 
-        public AreaService(IAreaRepository areaRepository)
+        public AreaService(
+            IAreaRepository areaRepository,
+            IRedisCacheService redisCacheService)
         {
             _areaRepository = areaRepository;
+            _redisCacheService = redisCacheService;
         }
 
         public async Task<AddAreaResponse> AddArea(AddAreaRequest request)
@@ -52,6 +59,57 @@ namespace RescueFlow.Services
                 RequiredResources = a.RequiredResources,
                 TimeConstraintHours = a.TimeConstraintHours
             }).ToList();
+        }
+
+        public async Task<List<GetAreaResponse>> GetAreas(int pageNumber, int pageSize)
+        {
+            if (pageNumber <= 0 || pageSize <= 0)
+                throw new ArgumentException("pageNumber และ pageSize ต้องมากกว่า 0");
+
+            var areas = await _areaRepository.GetPagedAsync(pageNumber, pageSize);
+
+            return areas.Select(a => new GetAreaResponse
+            {
+                AreaId = a.AreaId,
+                UrgencyLevel = a.UrgencyLevel,
+                RequiredResources = a.RequiredResources,
+                TimeConstraintHours = a.TimeConstraintHours
+            }).ToList();
+        }
+
+        public async Task<List<GetAreaResponse>> SearchAreas(SearchAreaRequest request)
+        {
+            if (request.pageNumber <= 0 || request.pageSize <= 0)
+                throw new ArgumentException("PageNumber และ PageSize ต้องมากกว่า 0");
+
+            //var cacheKey = GenerateSearchKey(request);
+            //var cached = await _redisCacheService.GetCacheAsync(cacheKey);
+            //if (cached != null)
+            //{
+            //    return JsonConvert.DeserializeObject<List<GetAreaResponse>>(cached)!;
+            //}
+
+            var query = await _areaRepository.GetAllAsync();
+
+            var filtered = query
+                .Where(a =>
+                    (!request.urgencyLevel.HasValue || a.UrgencyLevel == request.urgencyLevel.Value) &&
+                    (string.IsNullOrEmpty(request.resourceName) || a.RequiredResources.ContainsKey(request.resourceName))
+                )
+                .OrderBy(a => a.AreaId)
+                .Skip((request.pageNumber - 1) * request.pageSize)
+                .Take(request.pageSize)
+                .Select(a => new GetAreaResponse
+                {
+                    AreaId = a.AreaId,
+                    UrgencyLevel = a.UrgencyLevel,
+                    RequiredResources = a.RequiredResources,
+                    TimeConstraintHours = a.TimeConstraintHours
+                }).ToList();
+
+            //await _redisCacheService.SetCacheAsync(cacheKey, JsonConvert.SerializeObject(filtered), TimeSpan.FromMinutes(5));
+
+            return filtered;
         }
 
         public async Task<GetAreaResponse> GetAreasById(string areaId)
@@ -135,6 +193,14 @@ namespace RescueFlow.Services
 
             if (request.TimeConstraintHours <= 0)
                 throw new ArgumentException("TimeConstraintHours ต้องมากว่า 0");
+        }
+
+        private string GenerateSearchKey(SearchAreaRequest request)
+        {
+            var serialized = JsonConvert.SerializeObject(request);
+            using var sha256 = SHA256.Create();
+            var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(serialized));
+            return "search_area:" + Convert.ToHexString(hashBytes);
         }
     }
 }

@@ -24,6 +24,15 @@ namespace RescueFlow.Repositories
             return await _context.Areas.ToListAsync();
         }
 
+        public async Task<List<Area>> GetPagedAsync(int pageNumber, int pageSize)
+        {
+            return await _context.Areas
+                                 .OrderBy(a => a.AreaId)
+                                 .Skip((pageNumber - 1) * pageSize)
+                                 .Take(pageSize)
+                                 .ToListAsync();
+        }
+
         public async Task AddAsync(Area area)
         {
             _context.Areas.Add(area);

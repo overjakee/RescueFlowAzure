@@ -6,6 +6,7 @@ namespace RescueFlow.Interfaces.Repositories
     {
         Task<Area?> GetByIdAsync(string areaId);
         Task<List<Area>> GetAllAsync();
+        Task<List<Area>> GetPagedAsync(int pageNumber, int pageSize);
         Task AddAsync(Area area);
         Task UpdateAsync(Area area);
         Task DeleteAsync(Area area);

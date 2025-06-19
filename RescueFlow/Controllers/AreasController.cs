@@ -59,6 +59,34 @@ namespace RescueFlow.Controllers
             }
         }
 
+        //[HttpGet]
+        //public async Task<IActionResult> GetAreas([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        //{
+        //    try
+        //    {
+        //        var result = await _areaService.GetAreas(pageNumber, pageSize);
+        //        return Ok(result);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(StatusCodes.Status500InternalServerError, $"Internal server error: {ex.Message}");
+        //    }
+        //}
+
+        //[HttpGet("search")]
+        //public async Task<IActionResult> SearchAreas([FromQuery] SearchAreaRequest request)
+        //{
+        //    try
+        //    {
+        //        var result = await _areaService.SearchAreas(request);
+        //        return Ok(result);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        return StatusCode(StatusCodes.Status500InternalServerError, $"Internal server error: {ex.Message}");
+        //    }
+        //}
+
         [HttpGet("{AreaId}")]
         public async Task<IActionResult> GetAreaById(string AreaId)
         {
@@ -107,6 +135,10 @@ namespace RescueFlow.Controllers
             {
                 await _areaService.DeleteAreaById(AreaId);
                 return NoContent();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
             }
             catch (KeyNotFoundException ex)
             {
