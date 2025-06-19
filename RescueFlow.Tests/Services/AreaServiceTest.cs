@@ -1,6 +1,7 @@
 ﻿using Azure.Core;
 using Moq;
 using RescueFlow.DTO.Area.Request;
+using RescueFlow.Interfaces;
 using RescueFlow.Interfaces.Repositories;
 using RescueFlow.Models;
 using RescueFlow.Services;
@@ -12,11 +13,12 @@ namespace RescueFlow.Tests.Services
     {
         private readonly AreaService _areaService;
         private readonly Mock<IAreaRepository> _mockRepo;
+        private readonly Mock<IRedisCacheService> _redisCacheMock = new();
 
         public AreaServiceTests()
         {
             _mockRepo = new Mock<IAreaRepository>();
-            _areaService = new AreaService(_mockRepo.Object);
+            _areaService = new AreaService(_mockRepo.Object, _redisCacheMock.Object);
         }
 
         [Theory]
