@@ -33,6 +33,11 @@ namespace RescueFlow.Repositories
                                  .ToListAsync();
         }
 
+        public async Task<IQueryable<Area>> GetAllAsQueryable()
+        {
+            return _context.Areas.AsQueryable();
+        }
+
         public async Task AddAsync(Area area)
         {
             _context.Areas.Add(area);

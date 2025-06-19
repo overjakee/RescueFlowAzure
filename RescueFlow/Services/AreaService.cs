@@ -89,9 +89,10 @@ namespace RescueFlow.Services
             //    return JsonConvert.DeserializeObject<List<GetAreaResponse>>(cached)!;
             //}
 
-            var query = await _areaRepository.GetAllAsync();
+            var query = await _areaRepository.GetAllAsQueryable();
 
             var filtered = query
+                .AsEnumerable()
                 .Where(a =>
                     (!request.urgencyLevel.HasValue || a.UrgencyLevel == request.urgencyLevel.Value) &&
                     (string.IsNullOrEmpty(request.resourceName) || a.RequiredResources.ContainsKey(request.resourceName))
